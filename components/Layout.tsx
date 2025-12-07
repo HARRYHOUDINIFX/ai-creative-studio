@@ -9,8 +9,8 @@ const Layout: React.FC = () => {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const navItems = [
-        { name: '요금 안내', path: '/', icon: CreditCard },
-        { name: '포트폴리오', path: '/portfolio', icon: LayoutGrid },
+        { name: '포트폴리오', path: '/', icon: LayoutGrid },
+        { name: '요금 안내', path: '/pricing', icon: CreditCard },
     ];
 
     return (

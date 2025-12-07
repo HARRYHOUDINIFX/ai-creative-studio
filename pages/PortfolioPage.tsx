@@ -167,15 +167,17 @@ const PortfolioPage: React.FC = () => {
                         className="hidden"
                         accept="image/*,video/*"
                     />
-                    <button
-                        onClick={toggleEditMode}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-colors border ${isEditMode
-                            ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                            }`}
-                    >
-                        {isEditMode ? 'Done' : 'Edit Project'}
-                    </button>
+                    {import.meta.env.DEV && (
+                        <button
+                            onClick={toggleEditMode}
+                            className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-colors border ${isEditMode
+                                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                }`}
+                        >
+                            {isEditMode ? 'Done' : 'Edit Project'}
+                        </button>
+                    )}
                 </div>
             </div>
 

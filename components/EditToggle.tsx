@@ -24,7 +24,7 @@ const EditToggle: React.FC = () => {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (password === '1234') {
+        if (password === '12385') {
             setIsAuthenticated(true);
             setShowPasswordInput(false);
         } else {
