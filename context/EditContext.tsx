@@ -80,19 +80,20 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load implementation
   const loadFromFile = async () => {
     // 1. Load Page Elements (Header, etc.)
-    if (import.meta.env.DEV) {
-      try {
-        const response = await fetch('/api/load-data');
-        if (response.ok) {
-          const data = await response.json();
-          if (Object.keys(data).length > 0) setElements(data);
+    try {
+      const response = await fetch('/api/load-data');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Object.keys(data).length > 0) {
+          setElements(prev => Object.keys(prev).length === 0 ? data : prev);
         }
-      } catch (e) {
-        console.log('Dev: Project file load failed');
       }
-    } else {
-      // Prod: Load from localStorage or Static JSON if we had one for elements
-      // Currently elements mainly use LS in prod
+    } catch (e) {
+      console.log('Project file load failed', e);
+    }
+
+    // Prod: Load from localStorage if API unavailable or empty?
+    if (!import.meta.env.DEV) {
       try {
         const savedProject = localStorage.getItem(STORAGE_KEY);
         if (savedProject) {
@@ -103,13 +104,25 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 2. Load Portfolio Data (Projects)
-    // In BOTH Dev and Prod, we prefer fetching the static JSON file 'public/data/portfolio-data.json'
-    // Dev: API or Static. Prod: Static.
+    // Priority: API (Blob/LocalFS) -> Static JSON (Build time) -> LocalStorage
     try {
-      // Uses the static path. In dev, vite serves public/ at root. In prod, same.
-      const response = await fetch('/data/portfolio-data.json?t=' + new Date().getTime());
-      if (response.ok) {
-        const data = await response.json();
+      // Try loading from persistence layer first
+      const apiResponse = await fetch('/api/load-portfolio');
+      if (apiResponse.ok) {
+        const data = await apiResponse.json();
+        // Check if data is valid array
+        if (Array.isArray(data) && data.length > 0) {
+          // Success - load from persistence
+          setProjects(data as Project[]);
+          return;
+        }
+      }
+
+      // If API failed or returned empty/404, fallback to Static JSON
+      console.log('Persistence layer empty or failed, falling back to static data');
+      const staticResponse = await fetch('/data/portfolio-data.json?t=' + new Date().getTime());
+      if (staticResponse.ok) {
+        const data = await staticResponse.json();
 
         // Migration: Check if data is Array of Items (Legacy) or Array of Projects
         if (Array.isArray(data)) {
@@ -127,11 +140,11 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else {
-        console.warn('Portfolio data not found, checking local storage');
         throw new Error('No static file');
       }
     } catch (e) {
       // Fallback to LocalStorage
+      console.warn('Fallback to LocalStorage');
       const savedPortfolio = localStorage.getItem(PORTFOLIO_STORAGE_KEY);
       if (savedPortfolio) {
         const parsed = JSON.parse(savedPortfolio);
@@ -149,24 +162,22 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Save implementation
   const saveToFile = async (data: Record<string, ElementData>, projs: Project[]) => {
-    // 1. Try API endpoints ONLY in development
-    if (import.meta.env.DEV) {
-      try {
-        await fetch('/api/save-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+    // 1. Try API endpoints (Dev: Middleware, Prod: Vercel Function)
+    try {
+      await fetch('/api/save-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-        // Save projects structure
-        await fetch('/api/save-portfolio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(projs)
-        });
-      } catch (e) {
-        console.error('API Save Failed', e);
-      }
+      // Save projects structure
+      await fetch('/api/save-portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projs)
+      });
+    } catch (e) {
+      console.error('API Save Failed', e);
     }
 
     // 2. Always save to LocalStorage
@@ -248,7 +259,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const success = await saveToFile(elements, projects);
       setHasUnsavedChanges(false);
-      if (success && import.meta.env.DEV) {
+      if (success) {
         alert('저장이 완료되었습니다.');
       }
     } catch (e) {
