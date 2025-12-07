@@ -4,10 +4,62 @@ import { Settings, Check, Save, RotateCcw } from 'lucide-react';
 
 const EditToggle: React.FC = () => {
     const { isEditMode, toggleEditMode, saveProject, resetProject, hasUnsavedChanges } = useEdit();
+    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+    const [showPasswordInput, setShowPasswordInput] = React.useState(false);
+    const [password, setPassword] = React.useState('');
 
-    // 배포 환경(Production)에서는 편집 버튼 숨기기
-    if (!import.meta.env.DEV) {
+    React.useEffect(() => {
+        // Dev mode always authenticated
+        if (import.meta.env.DEV) {
+            setIsAuthenticated(true);
+            return;
+        }
+
+        // Check URL for admin param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+            setShowPasswordInput(true);
+        }
+    }, []);
+
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password === '1234') {
+            setIsAuthenticated(true);
+            setShowPasswordInput(false);
+        } else {
+            alert('비밀번호가 틀렸습니다.');
+        }
+    };
+
+    // If not authenticated and not showing password input, hide everything (Production Default)
+    if (!isAuthenticated && !showPasswordInput) {
         return null;
+    }
+
+    // Password Modal
+    if (showPasswordInput && !isAuthenticated) {
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+                <form onSubmit={handleLogin} className="bg-white p-6 rounded-xl shadow-2xl flex flex-col gap-4 min-w-[300px]">
+                    <h3 className="text-lg font-bold text-slate-800">관리자 확인</h3>
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="비밀번호 입력"
+                        className="border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        autoFocus
+                    />
+                    <button
+                        type="submit"
+                        className="bg-slate-900 text-white py-2 rounded-lg font-medium hover:bg-slate-800 transition-colors"
+                    >
+                        확인
+                    </button>
+                </form>
+            </div>
+        );
     }
 
     return (
