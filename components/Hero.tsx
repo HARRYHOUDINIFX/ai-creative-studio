@@ -33,6 +33,7 @@ const Hero: React.FC = () => {
               tagName="h1"
               className="text-[18px] sm:text-[40px] text-white font-bold text-center leading-[1.4] break-keep"
               html='모델, 스튜디오, 수십 명의 스태프...<br class="block sm:hidden" />촬영 견적의 거품은 기술로 걷어냈습니다.'
+              blockedStyles={['fontSize', 'lineHeight']}
             />
           </div>
 
@@ -42,6 +43,7 @@ const Hero: React.FC = () => {
               tagName="p"
               className="text-sm sm:text-lg leading-8 text-gray-300"
               text='"1/3 가격으로 대기업 퀄리티를 경험하세요."'
+              blockedStyles={['fontSize', 'lineHeight']}
             />
           </div>
 

@@ -13,9 +13,10 @@ interface EditableProps {
   html?: string;
   children?: React.ReactNode;
   id?: string;
+  blockedStyles?: string[];
 }
 
-const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '', text, html, children, id: propId }) => {
+const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '', text, html, children, id: propId, blockedStyles = [] }) => {
   const { isEditMode, registerElement, updateElement } = useEdit();
 
   const autoId = useId();
@@ -119,10 +120,10 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       let changed = false;
       const next = { ...currentStyle };
 
-      if (!currentStyle.fontSize && computed.fontSize) { next.fontSize = computed.fontSize; changed = true; }
-      if (!currentStyle.color && computed.color !== 'rgba(0, 0, 0, 0)') { next.color = computed.color; changed = true; }
-      if (!currentStyle.fontWeight && computed.fontWeight) { next.fontWeight = computed.fontWeight as any; changed = true; }
-      if (!currentStyle.textAlign && computed.textAlign) { next.textAlign = computed.textAlign as any; changed = true; }
+      if (!blockedStyles.includes('fontSize') && !currentStyle.fontSize && computed.fontSize) { next.fontSize = computed.fontSize; changed = true; }
+      if (!blockedStyles.includes('color') && !currentStyle.color && computed.color !== 'rgba(0, 0, 0, 0)') { next.color = computed.color; changed = true; }
+      if (!blockedStyles.includes('fontWeight') && !currentStyle.fontWeight && computed.fontWeight) { next.fontWeight = computed.fontWeight as any; changed = true; }
+      if (!blockedStyles.includes('textAlign') && !currentStyle.textAlign && computed.textAlign) { next.textAlign = computed.textAlign as any; changed = true; }
 
       if (changed) {
         styleRef.current = next;
@@ -133,7 +134,7 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
     if (showToolbar) {
       setToolbarPos({ x: 0, y: 0 });
     }
-  }, [showToolbar]);
+  }, [showToolbar, blockedStyles]);
 
   // Handle outside click to close toolbar
   useEffect(() => {
@@ -378,6 +379,11 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
   }
 
   const { transform, ...innerStyle } = style;
+
+  // blockedStyles에 포함된 스타일 제거
+  blockedStyles.forEach(key => {
+    delete (innerStyle as any)[key];
+  });
 
 
 
