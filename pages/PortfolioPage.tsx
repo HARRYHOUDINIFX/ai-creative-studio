@@ -38,7 +38,7 @@ const PortfolioPage: React.FC = () => {
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Project Not Found</h2>
                 <p className="text-slate-500 mb-6">The project you are looking for does not exist.</p>
                 <button
-                    onClick={() => navigate('/portfolio')}
+                    onClick={() => navigate('/')}
                     className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800"
                 >
                     Back to Portfolio
@@ -116,7 +116,7 @@ const PortfolioPage: React.FC = () => {
 
             {/* Nav Back */}
             <button
-                onClick={() => navigate('/portfolio')}
+                onClick={() => navigate('/')}
                 className="group flex items-center text-slate-500 hover:text-slate-900 transition-colors mb-8 font-medium"
             >
                 <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" />

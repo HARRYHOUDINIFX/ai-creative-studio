@@ -259,6 +259,22 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
     updateElement(elementId, { content: getCurrentContent(), style: newStyle });
   }, [elementId, updateElement, getCurrentContent]);
 
+  // Apply color to selected text only (for partial text styling)
+  const applyColorToSelection = useCallback((color: string) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      // Has selected text - apply color to selection only
+      document.execCommand('foreColor', false, color);
+      // Update content after applying
+      setTimeout(() => {
+        updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
+      }, 0);
+    } else {
+      // No selection - apply to entire element
+      updateStyle('color', color);
+    }
+  }, [elementId, updateElement, getCurrentContent, updateStyle]);
+
   const snapValue = (val: number) => Math.round(val / 4) * 4;
   const getPixelValue = (val: string | number | undefined) => parseInt(String(val)) || 0;
 
@@ -410,7 +426,7 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                       type="color"
                       className="w-5 h-5 bg-transparent border-none p-0 cursor-pointer"
                       value={String(style.color || computedStyle.color || '#000000')}
-                      onChange={(e) => updateStyle('color', e.target.value)}
+                      onChange={(e) => applyColorToSelection(e.target.value)}
                     />
                   </div>
                   <select

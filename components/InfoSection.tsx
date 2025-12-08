@@ -50,6 +50,10 @@ const InfoSection: React.FC = () => {
                   <span className="text-orange-400">•</span>
                   <Editable id="info-revision-3" tagName="span" text="'전면 재제작' 요청 시 기존 요금의 80% 비용 발생" />
                 </li>
+                <li className="flex gap-2">
+                  <span className="text-orange-400">•</span>
+                  <Editable id="info-revision-4" tagName="span" text="이미지, 영상 제작 시 원하시는 제작방향이 있으면 제작 전 반드시 미리 말씀해주세요. (제작 전 공유를 안해주시면 당사가 기획한대로 제작이 되고 이후의 수정 요청은 수정작업에 포함됩니다.)" />
+                </li>
               </ul>
             </div>
 
