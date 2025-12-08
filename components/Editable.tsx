@@ -301,13 +301,17 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
     }
   }, []);
 
-  // Undo 스택에 현재 상태 저장
+  // Undo 스택에 현재 상태 저장 (변경 전에 호출)
   const saveToUndoStack = useCallback(() => {
     if (contentRef.current) {
       const currentHTML = contentRef.current.innerHTML;
-      // 마지막 저장과 다를 때만 추가
+      // 스택이 비어있거나 마지막과 다를 때만 추가
       if (undoStack.current.length === 0 || undoStack.current[undoStack.current.length - 1] !== currentHTML) {
         undoStack.current.push(currentHTML);
+        // 스택 크기 제한 (메모리)
+        if (undoStack.current.length > 50) {
+          undoStack.current.shift();
+        }
         // 새 변경 시 redo 스택 클리어
         redoStack.current = [];
       }
@@ -409,8 +413,12 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       // 텍스트 선택 완료 시 선택 영역 저장
       saveCurrentSelection();
     },
-    onInput: () => {
-      // 입력 시 Undo 스택에 저장
+    onFocus: () => {
+      // 포커스 시 초기 상태 저장 (Undo 시작점)
+      saveToUndoStack();
+    },
+    onKeyUp: () => {
+      // 키 입력 후 상태 저장
       saveToUndoStack();
     },
     onKeyDown: (e: React.KeyboardEvent) => {
@@ -525,18 +533,42 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                       title="커스텀 색상 선택"
                     />
                   </div>
-                  <select
-                    className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded p-1.5 focus:border-primary-500 outline-none text-slate-700"
-                    value={style.fontWeight || '400'}
-                    onChange={(e) => updateStyle('fontWeight', e.target.value)}
-                  >
-                    <option value="100">Thin</option>
-                    <option value="300">Light</option>
-                    <option value="400">Regular</option>
-                    <option value="500">Medium</option>
-                    <option value="700">Bold</option>
-                    <option value="900">Black</option>
-                  </select>
+                  {/* Bold/Italic 버튼 (선택 영역에만 적용) */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      className="px-2 py-1 text-xs font-bold bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        document.execCommand('bold', false);
+                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
+                      }}
+                      title="Bold (선택 영역)"
+                    >
+                      B
+                    </button>
+                    <button
+                      className="px-2 py-1 text-xs italic bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        document.execCommand('italic', false);
+                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
+                      }}
+                      title="Italic (선택 영역)"
+                    >
+                      I
+                    </button>
+                    <button
+                      className="px-2 py-1 text-xs underline bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        document.execCommand('underline', false);
+                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
+                      }}
+                      title="Underline (선택 영역)"
+                    >
+                      U
+                    </button>
+                  </div>
                 </div>
 
                 {/* Alignment */}
