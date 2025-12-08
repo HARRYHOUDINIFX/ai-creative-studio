@@ -77,7 +77,77 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const saveTimerRef = useRef<number | null>(null);
 
-  // Load implementation
+  // Global Undo/Redo Stacks
+  const historyRef = useRef<{ elements: Record<string, ElementData>; projects: Project[] }[]>([]);
+  const futureRef = useRef<{ elements: Record<string, ElementData>; projects: Project[] }[]>([]);
+
+  const saveCheckpoint = useCallback(() => {
+    historyRef.current.push({
+      elements: JSON.parse(JSON.stringify(elements)),
+      projects: JSON.parse(JSON.stringify(projects))
+    });
+    // Limit history size
+    if (historyRef.current.length > 50) historyRef.current.shift();
+    // Clear future on new change
+    futureRef.current = [];
+  }, [elements, projects]);
+
+  const handleGlobalUndo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+
+    // Save current state to future
+    futureRef.current.push({
+      elements: JSON.parse(JSON.stringify(elements)),
+      projects: JSON.parse(JSON.stringify(projects))
+    });
+
+    const previous = historyRef.current.pop()!;
+    setElements(previous.elements);
+    setProjects(previous.projects);
+    setHasUnsavedChanges(true); // Undo is a change
+  }, [elements, projects]);
+
+  const handleGlobalRedo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+
+    // Save current state to history
+    historyRef.current.push({
+      elements: JSON.parse(JSON.stringify(elements)),
+      projects: JSON.parse(JSON.stringify(projects))
+    });
+
+    const next = futureRef.current.pop()!;
+    setElements(next.elements);
+    setProjects(next.projects);
+    setHasUnsavedChanges(true);
+  }, [elements, projects]);
+
+  // Global Keydown Listener for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isEditMode) return;
+
+      // Ignore if user is typing in an input/textarea/contentEditable
+      const target = e.target as HTMLElement;
+      if (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleGlobalUndo();
+      }
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        handleGlobalRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isEditMode, handleGlobalUndo, handleGlobalRedo]);
+
+
   const loadFromFile = async () => {
     // 1. Load Page Elements (Header, etc.)
     // Priority: Static JSON (Build time) -> API (Blob/LocalFS) -> LocalStorage
@@ -242,6 +312,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [elements]);
 
   const updateElement = useCallback((id: string, data: Partial<ElementData>) => {
+    saveCheckpoint();
     setElements(prev => ({
       ...prev,
       [id]: { ...prev[id], ...data }
@@ -251,16 +322,19 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Project Helper Functions
   const updateProjectItems = useCallback((projectId: string, items: PortfolioItem[]) => {
+    saveCheckpoint();
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, items } : p));
     setHasUnsavedChanges(true);
   }, []);
 
   const updateProject = useCallback((projectId: string, data: Partial<Project>) => {
+    saveCheckpoint();
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...data } : p));
     setHasUnsavedChanges(true);
   }, []);
 
   const createNewProject = useCallback((title: string) => {
+    saveCheckpoint();
     const newProject: Project = {
       id: Date.now().toString(),
       title,
@@ -272,6 +346,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteProject = useCallback((id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    saveCheckpoint();
     setProjects(prev => prev.filter(p => p.id !== id));
     setHasUnsavedChanges(true);
   }, []);
