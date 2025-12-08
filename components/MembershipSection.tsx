@@ -9,6 +9,7 @@ const memberships: PackageItem[] = [
     title: 'STANDARD',
     subtitle: '블로그 집중형',
     price: 600000,
+    originalPrice: 720000,
     type: 'membership',
     description: [
       '블로그 포스팅 월 4회 (주 1회)',
@@ -22,6 +23,7 @@ const memberships: PackageItem[] = [
     title: 'PREMIUM',
     subtitle: '영상+SNS 확산형',
     price: 1200000,
+    originalPrice: 1740000,
     isHot: true,
     type: 'membership',
     description: [

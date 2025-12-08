@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Menu, X, CreditCard, LayoutGrid } from 'lucide-react';
 import EditToggle from './EditToggle';
+import ConsultationButton from './ConsultationButton';
+import { ChatProvider, useChat } from '../context/ChatContext';
+import ChatWindow from './ChatWindow';
 
-const Layout: React.FC = () => {
+const LayoutContent: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { isChatOpen, closeChat } = useChat();
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -83,7 +87,18 @@ const Layout: React.FC = () => {
                     <Outlet />
                 </div>
             </div>
+
+            <ConsultationButton />
+            {isChatOpen && <ChatWindow onClose={closeChat} />}
         </div>
+    );
+};
+
+const Layout: React.FC = () => {
+    return (
+        <ChatProvider>
+            <LayoutContent />
+        </ChatProvider>
     );
 };
 

@@ -2,6 +2,7 @@ export interface PackageItem {
   id: string;
   title: string;
   price: number;
+  originalPrice?: number;
   subtitle?: string;
   description: string[];
   recommendation: string;

@@ -7,7 +7,8 @@ const packages: PackageItem[] = [
   {
     id: 'A',
     title: 'A. 상세페이지 심폐소생 팩',
-    price: 350000,
+    price: 290000,
+    originalPrice: 340000,
     type: 'package',
     description: [
       '<strong class="text-gray-900">이미지 3종 + GIF 1종</strong>',
@@ -20,7 +21,8 @@ const packages: PackageItem[] = [
   {
     id: 'B',
     title: 'B. 런칭 올인원 팩',
-    price: 800000,
+    price: 850000,
+    originalPrice: 1150000,
     isHot: true,
     type: 'package',
     description: [
