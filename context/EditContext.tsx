@@ -80,25 +80,46 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load implementation
   const loadFromFile = async () => {
     // 1. Load Page Elements (Header, etc.)
+    // Priority: Static JSON (Build time) -> API (Blob/LocalFS) -> LocalStorage
+    let elementsLoaded = false;
+
     try {
-      const response = await fetch('/api/load-data');
-      if (response.ok) {
-        const data = await response.json();
+      // Try loading from static file first
+      const staticResponse = await fetch('/data/project-data.json?t=' + new Date().getTime());
+      if (staticResponse.ok) {
+        const data = await staticResponse.json();
         if (data && Object.keys(data).length > 0) {
-          setElements(prev => Object.keys(prev).length === 0 ? data : prev);
+          setElements(data);
+          elementsLoaded = true;
         }
       }
     } catch (e) {
-      console.log('Project file load failed', e);
+      console.log('Static file load failed', e);
     }
 
-    // Prod: Load from localStorage if API unavailable or empty?
-    if (!import.meta.env.DEV) {
+    // Fallback to API if static failed
+    if (!elementsLoaded) {
+      try {
+        const response = await fetch('/api/load-data');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && Object.keys(data).length > 0) {
+            setElements(data);
+            elementsLoaded = true;
+          }
+        }
+      } catch (e) {
+        console.log('Project file load failed', e);
+      }
+    }
+
+    // Prod: Load from localStorage if all above failed
+    if (!elementsLoaded && !import.meta.env.DEV) {
       try {
         const savedProject = localStorage.getItem(STORAGE_KEY);
         if (savedProject) {
           const parsed = JSON.parse(savedProject);
-          setElements(prev => Object.keys(prev).length === 0 ? parsed : prev);
+          setElements(parsed);
         }
       } catch (e) { }
     }
