@@ -320,23 +320,25 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
 
   // Undo 실행
   const handleUndo = useCallback(() => {
-    if (undoStack.current.length > 0 && contentRef.current) {
-      const currentHTML = contentRef.current.innerHTML;
-      redoStack.current.push(currentHTML);
-      const previousHTML = undoStack.current.pop()!;
-      contentRef.current.innerHTML = previousHTML;
-      updateElement(elementId, { content: previousHTML, style: styleRef.current });
+    // 최소 2개 상태가 있어야 되돌리기 가능 (현재 상태 + 이전 상태)
+    if (undoStack.current.length > 1 && contentRef.current) {
+      const current = undoStack.current.pop()!; // 현재 상태 제거
+      redoStack.current.push(current); // Redo 스택으로 이동
+
+      const prev = undoStack.current[undoStack.current.length - 1]; // 이전 상태 확인
+      contentRef.current.innerHTML = prev; // DOM 적용
+      updateElement(elementId, { content: prev, style: styleRef.current }); // Context 저장
     }
   }, [elementId, updateElement]);
 
   // Redo 실행
   const handleRedo = useCallback(() => {
     if (redoStack.current.length > 0 && contentRef.current) {
-      const currentHTML = contentRef.current.innerHTML;
-      undoStack.current.push(currentHTML);
-      const nextHTML = redoStack.current.pop()!;
-      contentRef.current.innerHTML = nextHTML;
-      updateElement(elementId, { content: nextHTML, style: styleRef.current });
+      const next = redoStack.current.pop()!; // Redo 스택에서 가져오기
+      undoStack.current.push(next); // Undo 스택으로 복귀
+
+      contentRef.current.innerHTML = next; // DOM 적용
+      updateElement(elementId, { content: next, style: styleRef.current }); // Context 저장
     }
   }, [elementId, updateElement]);
 
