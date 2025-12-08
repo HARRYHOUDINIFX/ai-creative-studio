@@ -366,6 +366,18 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       }
       // 텍스트 모드에서는 일반 텍스트 선택 동작 허용
     },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      // Ctrl+Z: Undo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        document.execCommand('undo', false);
+      }
+      // Ctrl+Y or Ctrl+Shift+Z: Redo
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        document.execCommand('redo', false);
+      }
+    },
   };
 
   return (
@@ -442,16 +454,21 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                       onChange={(e) => updateStyle('fontSize', e.target.value ? e.target.value + 'px' : '')}
                     />
                   </div>
-                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1 py-1">
                     <Palette size={14} className="text-slate-400" />
-                    <input
-                      type="color"
-                      className="w-5 h-5 bg-transparent border-none p-0 cursor-pointer"
-                      value={String(style.color || computedStyle.color || '#000000')}
-                      onMouseDown={saveCurrentSelection}
-                      onFocus={saveCurrentSelection}
-                      onChange={(e) => applyColorToSelection(e.target.value)}
-                    />
+                    {/* 색상 버튼 팔레트 (선택 영역 유지) */}
+                    {['#000000', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6', '#EC4899'].map((color) => (
+                      <button
+                        key={color}
+                        className="w-4 h-4 rounded-sm border border-slate-300 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color }}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // 선택 영역 유지
+                          saveCurrentSelection();
+                        }}
+                        onClick={() => applyColorToSelection(color)}
+                      />
+                    ))}
                   </div>
                   <select
                     className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded p-1.5 focus:border-primary-500 outline-none text-slate-700"
