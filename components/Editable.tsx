@@ -51,6 +51,10 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
   // 선택 영역 저장용 (색상 변경 시 선택 유지)
   const savedSelection = useRef<Range | null>(null);
 
+  // Undo/Redo 히스토리 스택
+  const undoStack = useRef<string[]>([]);
+  const redoStack = useRef<string[]>([]);
+
   // 현재 content 가져오기 (항상 DOM에서 직접)
   const getCurrentContent = useCallback(() => {
     return contentRef.current?.innerHTML || initialContentRef.current;
@@ -297,6 +301,41 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
     }
   }, []);
 
+  // Undo 스택에 현재 상태 저장
+  const saveToUndoStack = useCallback(() => {
+    if (contentRef.current) {
+      const currentHTML = contentRef.current.innerHTML;
+      // 마지막 저장과 다를 때만 추가
+      if (undoStack.current.length === 0 || undoStack.current[undoStack.current.length - 1] !== currentHTML) {
+        undoStack.current.push(currentHTML);
+        // 새 변경 시 redo 스택 클리어
+        redoStack.current = [];
+      }
+    }
+  }, []);
+
+  // Undo 실행
+  const handleUndo = useCallback(() => {
+    if (undoStack.current.length > 0 && contentRef.current) {
+      const currentHTML = contentRef.current.innerHTML;
+      redoStack.current.push(currentHTML);
+      const previousHTML = undoStack.current.pop()!;
+      contentRef.current.innerHTML = previousHTML;
+      updateElement(elementId, { content: previousHTML, style: styleRef.current });
+    }
+  }, [elementId, updateElement]);
+
+  // Redo 실행
+  const handleRedo = useCallback(() => {
+    if (redoStack.current.length > 0 && contentRef.current) {
+      const currentHTML = contentRef.current.innerHTML;
+      undoStack.current.push(currentHTML);
+      const nextHTML = redoStack.current.pop()!;
+      contentRef.current.innerHTML = nextHTML;
+      updateElement(elementId, { content: nextHTML, style: styleRef.current });
+    }
+  }, [elementId, updateElement]);
+
   const snapValue = (val: number) => Math.round(val / 4) * 4;
   const getPixelValue = (val: string | number | undefined) => parseInt(String(val)) || 0;
 
@@ -366,16 +405,24 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       }
       // 텍스트 모드에서는 일반 텍스트 선택 동작 허용
     },
+    onMouseUp: () => {
+      // 텍스트 선택 완료 시 선택 영역 저장
+      saveCurrentSelection();
+    },
+    onInput: () => {
+      // 입력 시 Undo 스택에 저장
+      saveToUndoStack();
+    },
     onKeyDown: (e: React.KeyboardEvent) => {
       // Ctrl+Z: Undo
       if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        document.execCommand('undo', false);
+        handleUndo();
       }
       // Ctrl+Y or Ctrl+Shift+Z: Redo
       if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
         e.preventDefault();
-        document.execCommand('redo', false);
+        handleRedo();
       }
     },
   };
@@ -464,11 +511,19 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                         style={{ backgroundColor: color }}
                         onMouseDown={(e) => {
                           e.preventDefault(); // 선택 영역 유지
-                          saveCurrentSelection();
                         }}
                         onClick={() => applyColorToSelection(color)}
                       />
                     ))}
+                    {/* 컬러 피커 */}
+                    <input
+                      type="color"
+                      className="w-4 h-4 bg-transparent border border-slate-300 rounded-sm p-0 cursor-pointer"
+                      value={String(style.color || '#000000')}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onChange={(e) => applyColorToSelection(e.target.value)}
+                      title="커스텀 색상 선택"
+                    />
                   </div>
                   <select
                     className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded p-1.5 focus:border-primary-500 outline-none text-slate-700"
