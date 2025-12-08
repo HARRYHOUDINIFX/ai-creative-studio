@@ -64,7 +64,7 @@ export const EditContext = createContext<EditContextType>({
   isLoaded: false,
 });
 
-const STORAGE_KEY = 'ai_studio_project_data_v8';
+const STORAGE_KEY = 'ai_studio_project_data_v9';
 const PORTFOLIO_STORAGE_KEY = 'ai_studio_portfolio_data_v1';
 
 export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

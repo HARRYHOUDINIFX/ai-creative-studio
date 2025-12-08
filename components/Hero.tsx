@@ -41,7 +41,7 @@ const Hero: React.FC = () => {
             <Editable
               id="hero-subtitle"
               tagName="p"
-              className="text-sm sm:text-lg leading-8 text-gray-300"
+              className="text-sm sm:text-lg leading-6 sm:leading-8 text-gray-300"
               text='"1/3 가격으로 대기업 퀄리티를 경험하세요."'
               blockedStyles={['fontSize', 'lineHeight']}
             />
