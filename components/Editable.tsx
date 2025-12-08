@@ -48,6 +48,9 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
   const elementDragStart = useRef({ x: 0, y: 0 });
   const currentTranslate = useRef({ x: 0, y: 0 });
 
+  // 선택 영역 저장용 (색상 변경 시 선택 유지)
+  const savedSelection = useRef<Range | null>(null);
+
   // 현재 content 가져오기 (항상 DOM에서 직접)
   const getCurrentContent = useCallback(() => {
     return contentRef.current?.innerHTML || initialContentRef.current;
@@ -261,19 +264,38 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
 
   // Apply color to selected text only (for partial text styling)
   const applyColorToSelection = useCallback((color: string) => {
+    // 저장된 선택 영역이 있으면 복원
+    if (savedSelection.current && contentRef.current) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(savedSelection.current);
+
+        // 선택 영역에 색상 적용
+        document.execCommand('foreColor', false, color);
+
+        // 선택 해제
+        savedSelection.current = null;
+
+        // Update content after applying
+        setTimeout(() => {
+          updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
+        }, 0);
+        return;
+      }
+    }
+
+    // 저장된 선택이 없으면 전체 요소에 색상 적용
+    updateStyle('color', color);
+  }, [elementId, updateElement, getCurrentContent, updateStyle]);
+
+  // 선택 영역 저장 함수
+  const saveCurrentSelection = useCallback(() => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-      // Has selected text - apply color to selection only
-      document.execCommand('foreColor', false, color);
-      // Update content after applying
-      setTimeout(() => {
-        updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
-      }, 0);
-    } else {
-      // No selection - apply to entire element
-      updateStyle('color', color);
+      savedSelection.current = selection.getRangeAt(0).cloneRange();
     }
-  }, [elementId, updateElement, getCurrentContent, updateStyle]);
+  }, []);
 
   const snapValue = (val: number) => Math.round(val / 4) * 4;
   const getPixelValue = (val: string | number | undefined) => parseInt(String(val)) || 0;
@@ -426,6 +448,8 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                       type="color"
                       className="w-5 h-5 bg-transparent border-none p-0 cursor-pointer"
                       value={String(style.color || computedStyle.color || '#000000')}
+                      onMouseDown={saveCurrentSelection}
+                      onFocus={saveCurrentSelection}
                       onChange={(e) => applyColorToSelection(e.target.value)}
                     />
                   </div>

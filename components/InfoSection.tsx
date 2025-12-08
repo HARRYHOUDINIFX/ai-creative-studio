@@ -52,7 +52,7 @@ const InfoSection: React.FC = () => {
                 </li>
                 <li className="flex gap-2">
                   <span className="text-orange-400">•</span>
-                  <Editable id="info-revision-4" tagName="span" text="이미지, 영상 제작 시 원하시는 제작방향이 있으면 제작 전 반드시 미리 말씀해주세요. (제작 전 공유를 안해주시면 당사가 기획한대로 제작이 되고 이후의 수정 요청은 수정작업에 포함됩니다.)" />
+                  <Editable id="info-revision-4" tagName="span" html="만족스러운 결과물을 위해 원하시는 컨셉이나 레퍼런스가 있다면 작업 시작 전에 꼭 공유해 주세요!<br/>사전에 방향을 전달받지 못한 경우 에디터의 기획으로 제작되며, 이로 인한 전체 컨셉 변경 요청은 수정 횟수가 차감되거나 추가 비용이 발생할 수 있습니다." />
                 </li>
               </ul>
             </div>
