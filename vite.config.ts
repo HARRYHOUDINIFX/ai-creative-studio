@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 
 // 파일 기반 저장 플러그인
 function filePersistencePlugin(env: Record<string, string>): Plugin {
-  const dataFilePath = path.resolve(__dirname, 'data', 'project-data.json');
+  const dataFilePath = path.resolve(__dirname, 'public', 'data', 'project-data.json');
   const portfolioFilePath = path.resolve(__dirname, 'public', 'data', 'portfolio-data.json');
 
   return {
