@@ -269,20 +269,19 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
 
   // Apply color to selected text only (for partial text styling)
   const applyColorToSelection = useCallback((color: string) => {
-    // 저장된 선택 영역이 있으면 복원
+    // 1. 저장된 선택 영역이 있으면 우선 사용
     if (savedSelection.current && contentRef.current) {
       const selection = window.getSelection();
       if (selection) {
         selection.removeAllRanges();
         selection.addRange(savedSelection.current);
 
-        // 선택 영역에 색상 적용
+        // 선택 영역이 실제로 텍스트를 포함하거나 커서가 내부일 때
         document.execCommand('foreColor', false, color);
 
-        // 선택 해제
-        savedSelection.current = null;
+        // 선택 해제 후 저장된 상태 제거 (또는 유지? 보통 유지하는 게 좋음)
+        // savedSelection.current = null; 
 
-        // Update content after applying
         setTimeout(() => {
           updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
         }, 0);
@@ -290,17 +289,60 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       }
     }
 
-    // 저장된 선택이 없으면 전체 요소에 색상 적용
-    updateStyle('color', color);
-  }, [elementId, updateElement, getCurrentContent, updateStyle]);
+    // 2. 만약 선택 영역이 없으면 (정말 아무것도 선택 안된 상태), 경고보다는 
+    // 그냥 커서 위치에 적용되거나 무시하는게 낫지만, 
+    // 기존 동작(전체 적용)이 사용자를 혼란스럽게 하므로, 
+    // "선택된 텍스트가 없으면 스타일 적용 안함" 또는 "전체 적용(기존)" 중 선택해야 함.
+    // 사용자 요청: "따로 바꾸고 싶은데 전체가 바뀜" -> 전체 적용 Fallback을 제거해야 함.
+
+    // 다만, 색상 피커가 툴바에 있으므로, 텍스트가 아예 비어있거나 전체 박스 스타일링 의도일 수도 있음.
+    // 절충안: 텍스트 모드일 때 선택 영역이 'Collapsed'(커서만 있음)라도 execCommand는 
+    // '이후 타이핑될 글자'에 색을 먹임. 이것이 더 자연스러움.
+    // 따라서 전체 updateStyle('color', ...) 호출을 제거하고 execCommand로 통일 시도.
+
+    // Fallback to execCommand on current cursor if possible
+    document.execCommand('foreColor', false, color);
+    setTimeout(() => {
+      updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
+    }, 0);
+
+  }, [elementId, updateElement, getCurrentContent]);
 
   // 선택 영역 저장 함수
   const saveCurrentSelection = useCallback(() => {
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+    if (selection && selection.rangeCount > 0) {
+      // 텍스트 선택이 없더라도 커서 위치(Collapsed Range)라도 저장하여
+      // 이후 스타일 적용 시 해당 위치에 적용되도록 함
       savedSelection.current = selection.getRangeAt(0).cloneRange();
     }
   }, []);
+
+  // Selection change handler to capture all selection events (mouse, keyboard, etc.)
+  const handleSelect = useCallback(() => {
+    saveCurrentSelection();
+  }, [saveCurrentSelection]);
+
+  // Apply command helper (Bold, Italic, Underline)
+  const applyCommand = useCallback((command: string) => {
+    // 저장된 선택 영역 복원
+    if (savedSelection.current) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(savedSelection.current);
+      }
+    }
+
+    document.execCommand(command, false);
+
+    // 즉시 업데이트 반영
+    setTimeout(() => {
+      updateElement(elementId, { content: getCurrentContent(), style: styleRef.current });
+      // 명령 실행 후 선택 영역 다시 저장 (커서 위치 등)
+      saveCurrentSelection();
+    }, 0);
+  }, [elementId, updateElement, getCurrentContent, saveCurrentSelection]);
 
   // Undo 스택에 현재 상태 저장 (변경 전에 호출)
   const saveToUndoStack = useCallback(() => {
@@ -425,9 +467,11 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
       // 포커스 시 초기 상태 저장 (Undo 시작점)
       saveToUndoStack();
     },
+    onSelect: handleSelect, // 리액트 합성 이벤트 사용
     onKeyUp: () => {
-      // 키 입력 후 상태 저장
+      // 키 입력 후 상태 저장 + 선택 영역 업데이트 (키보드 선택 지원)
       saveToUndoStack();
+      saveCurrentSelection();
     },
     onKeyDown: (e: React.KeyboardEvent) => {
       // Ctrl+Z: Undo
@@ -546,10 +590,7 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                     <button
                       className="px-2 py-1 text-xs font-bold bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        document.execCommand('bold', false);
-                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
-                      }}
+                      onClick={() => applyCommand('bold')}
                       title="Bold (선택 영역)"
                     >
                       B
@@ -557,10 +598,7 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                     <button
                       className="px-2 py-1 text-xs italic bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        document.execCommand('italic', false);
-                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
-                      }}
+                      onClick={() => applyCommand('italic')}
                       title="Italic (선택 영역)"
                     >
                       I
@@ -568,10 +606,7 @@ const Editable: React.FC<EditableProps> = ({ tagName: Tag = 'div', className = '
                     <button
                       className="px-2 py-1 text-xs underline bg-slate-50 border border-slate-200 rounded hover:bg-slate-100"
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        document.execCommand('underline', false);
-                        setTimeout(() => updateElement(elementId, { content: getCurrentContent(), style: styleRef.current }), 0);
-                      }}
+                      onClick={() => applyCommand('underline')}
                       title="Underline (선택 영역)"
                     >
                       U
