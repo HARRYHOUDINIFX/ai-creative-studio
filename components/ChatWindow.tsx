@@ -34,6 +34,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         scrollToBottom();
     }, [messages]);
 
+    // Prevent background scrolling when chat is open (Mobile UX)
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
+
     const handleOptionClick = (optionId: number) => {
         const option = MENU_OPTIONS.find(o => o.id === optionId);
         if (!option) return;
