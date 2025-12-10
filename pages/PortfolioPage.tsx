@@ -104,9 +104,9 @@ const PortfolioPage: React.FC = () => {
         }
     };
 
-    const handleUpdateTitle = (itemId: string, newTitle: string) => {
+    const handleUpdateItem = (itemId: string, updates: any) => {
         const newItems = currentProject.items.map(item =>
-            item.id === itemId ? { ...item, title: newTitle } : item
+            item.id === itemId ? { ...item, ...updates } : item
         );
         updateProjectItems(currentProject.id, newItems);
     };
@@ -202,7 +202,7 @@ const PortfolioPage: React.FC = () => {
                                         controls
                                         playsInline
                                         preload="auto"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain md:h-auto md:w-auto md:max-h-[80vh] mx-auto"
                                         style={{ backgroundColor: '#000' }}
                                     />
                                 ) : (
@@ -218,16 +218,81 @@ const PortfolioPage: React.FC = () => {
                             <div className="mt-6 flex justify-between items-start pb-4 border-b border-slate-100">
                                 <div className="flex-1 max-w-2xl">
                                     {isEditMode ? (
-                                        <input
-                                            type="text"
-                                            value={item.title || ''}
-                                            onChange={(e) => handleUpdateTitle(item.id, e.target.value)}
-                                            className="w-full bg-slate-50 text-xl font-bold border-b-2 border-slate-200 focus:border-primary-500 focus:outline-none py-2 px-2 transition-colors rounded-t-lg"
-                                            placeholder="Enter Title..."
-                                        />
+                                        <div className="flex flex-col gap-4">
+                                            {/* Main Title Input */}
+                                            <input
+                                                type="text"
+                                                value={item.title || ''}
+                                                onChange={(e) => handleUpdateItem(item.id, { title: e.target.value })}
+                                                className="w-full bg-slate-50 font-bold border-b-2 border-slate-200 focus:border-primary-500 focus:outline-none py-2 px-2 transition-colors rounded-t-lg text-lg text-slate-900"
+                                                placeholder="Main Title (e.g. Naver Blog)"
+                                            />
+
+                                            {/* Highlight Input & Controls */}
+                                            <div className="flex flex-col bg-slate-50/50 p-2 rounded-lg gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={item.highlight || ''}
+                                                    onChange={(e) => handleUpdateItem(item.id, { highlight: e.target.value })}
+                                                    className={`w-full bg-transparent border-b border-slate-200 focus:border-primary-500 focus:outline-none py-1 px-2 transition-colors ${item.highlightStyle?.fontSize || 'text-sm'}`}
+                                                    style={{ color: item.highlightStyle?.color }}
+                                                    placeholder="Highlight Text (e.g. *Rules)"
+                                                />
+
+                                                {/* Highlight Style Controls */}
+                                                <div className="flex flex-wrap items-center gap-4 p-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Highlight Size</span>
+                                                        <div className="flex bg-white rounded border border-slate-200 overflow-hidden">
+                                                            {[
+                                                                { label: 'S', value: 'text-xs' },
+                                                                { label: 'M', value: 'text-sm' },
+                                                                { label: 'L', value: 'text-lg' },
+                                                                { label: 'XL', value: 'text-xl' },
+                                                            ].map((size) => (
+                                                                <button
+                                                                    key={size.label}
+                                                                    onClick={() => handleUpdateItem(item.id, {
+                                                                        highlightStyle: { ...item.highlightStyle, fontSize: size.value }
+                                                                    })}
+                                                                    className={`px-2 py-1 text-[10px] font-medium transition-colors ${(item.highlightStyle?.fontSize || 'text-sm') === size.value
+                                                                            ? 'bg-slate-900 text-white'
+                                                                            : 'hover:bg-slate-50 text-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    {size.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="w-px h-4 bg-slate-200" />
+
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Color</span>
+                                                        <input
+                                                            type="color"
+                                                            value={item.highlightStyle?.color || '#0f172a'}
+                                                            onChange={(e) => handleUpdateItem(item.id, {
+                                                                highlightStyle: { ...item.highlightStyle, color: e.target.value }
+                                                            })}
+                                                            className="w-5 h-5 rounded cursor-pointer border-0 p-0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <h2 className="text-2xl font-bold text-slate-900">
-                                            {item.title || 'Untitled'}
+                                        <h2 className="text-2xl font-bold text-slate-900 flex flex-wrap items-baseline gap-2">
+                                            <span>{item.title || 'Untitled'}</span>
+                                            {item.highlight && (
+                                                <span
+                                                    className={`${item.highlightStyle?.fontSize || 'text-sm'}`}
+                                                    style={{ color: item.highlightStyle?.color }}
+                                                >
+                                                    {item.highlight}
+                                                </span>
+                                            )}
                                         </h2>
                                     )}
                                 </div>
@@ -245,7 +310,7 @@ const PortfolioPage: React.FC = () => {
                         </div>
                     )))}
             </div>
-        </div>
+        </div >
     );
 };
 

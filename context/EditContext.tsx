@@ -12,6 +12,10 @@ export interface PortfolioItem {
   name: string;
   type: 'image' | 'video';
   title?: string;
+  titleStyle?: {
+    fontSize?: string;
+    color?: string;
+  };
 }
 
 export interface Project {
@@ -20,6 +24,10 @@ export interface Project {
   description?: string;
   thumbnail?: string;
   items: PortfolioItem[];
+  titleStyle?: {
+    fontSize?: string;
+    color?: string;
+  };
 }
 
 interface EditContextType {
