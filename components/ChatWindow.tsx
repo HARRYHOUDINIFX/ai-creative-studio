@@ -34,14 +34,27 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
         scrollToBottom();
     }, [messages]);
 
-    // Prevent background scrolling when chat is open (Mobile UX)
-    // Prevent background scrolling when chat is open (Mobile UX)
+    // Prevent background scrolling when chat is open (Robust Mobile Fix)
     useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden'; // Lock html for mobile safari
+        // 1. Get current scroll position
+        const scrollY = window.scrollY;
+
+        // 2. Fix body position
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+        document.body.style.overflowY = 'scroll'; // Prevent layout shift if scrollbar disappears
+
         return () => {
-            document.body.style.overflow = 'unset';
-            document.documentElement.style.overflow = 'unset';
+            // 3. Restore scrolling
+            const scrollY = document.body.style.top;
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.overflowY = '';
+
+            // 4. Scroll back to original position
+            window.scrollTo(0, parseInt(scrollY || '0') * -1);
         };
     }, []);
 

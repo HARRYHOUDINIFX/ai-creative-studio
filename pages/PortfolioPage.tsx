@@ -198,7 +198,7 @@ const PortfolioPage: React.FC = () => {
                             <div className="w-full flex justify-center bg-slate-50 rounded-2xl overflow-hidden ring-1 ring-slate-900/5 shadow-sm">
                                 {item.type === 'video' ? (
                                     <video
-                                        src={item.url}
+                                        src={`${item.url}#t=0.001`}
                                         controls
                                         playsInline
                                         preload="auto"
