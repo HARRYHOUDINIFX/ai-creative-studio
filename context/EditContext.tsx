@@ -45,6 +45,7 @@ interface EditContextType {
   // Legacy support & Helper
   updateProjectItems: (projectId: string, items: PortfolioItem[]) => void;
   updateProject: (projectId: string, data: Partial<Project>) => void;
+  reorderProjectItems: (projectId: string, fromIndex: number, toIndex: number) => void;
   createNewProject: (title: string) => void;
   deleteProject: (id: string) => void;
 
@@ -65,6 +66,7 @@ export const EditContext = createContext<EditContextType>({
   setCurrentProject: () => { },
   updateProjectItems: () => { },
   updateProject: () => { },
+  reorderProjectItems: () => { },
   createNewProject: () => { },
   deleteProject: () => { },
   saveProject: () => { },
@@ -344,6 +346,20 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     markChanged();
   }, []);
 
+  const reorderProjectItems = useCallback((projectId: string, fromIndex: number, toIndex: number) => {
+    saveCheckpoint();
+    setProjects(prev => prev.map(p => {
+      if (p.id !== projectId) return p;
+      const newItems = [...p.items];
+      const [movedItem] = newItems.splice(fromIndex, 1);
+      newItems.splice(toIndex, 0, movedItem);
+      return { ...p, items: newItems };
+    }));
+    markChanged();
+  }, []);
+
+
+
   const createNewProject = useCallback((title: string) => {
     saveCheckpoint();
     const newProject: Project = {
@@ -396,6 +412,7 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentProject,
       updateProjectItems,
       updateProject,
+      reorderProjectItems,
       createNewProject,
       deleteProject,
       saveProject,

@@ -12,6 +12,7 @@ const PortfolioPage: React.FC = () => {
         updateProject,
         isEditMode,
         toggleEditMode,
+        reorderProjectItems,
         saveProject
     } = useEdit();
 
@@ -182,7 +183,7 @@ const PortfolioPage: React.FC = () => {
             </div>
 
             {/* Content Grid */}
-            <div className="max-w-7xl mx-auto space-y-24">
+            <div className="max-w-7xl mx-auto space-y-24 snap-y snap-mandatory">
                 {currentProject.items.length === 0 ? (
                     <div className="text-center py-32 text-slate-400 border-2 border-dashed border-slate-200 rounded-2xl">
                         <div className="inline-flex p-4 bg-slate-50 rounded-full mb-4">
@@ -192,8 +193,8 @@ const PortfolioPage: React.FC = () => {
                         <p className="text-sm opacity-70 mt-1">Click 'Add Media' to upload images or videos.</p>
                     </div>
                 ) : (
-                    currentProject.items.map((item) => (
-                        <div key={item.id} className="group relative">
+                    currentProject.items.map((item, index) => (
+                        <div key={item.id} className="group relative snap-center snap-always pt-12">
                             {/* Media Render */}
                             <div className="w-full flex justify-center bg-slate-50 rounded-2xl overflow-hidden ring-1 ring-slate-900/5 shadow-sm">
                                 {item.type === 'video' ? (
@@ -298,13 +299,31 @@ const PortfolioPage: React.FC = () => {
                                 </div>
 
                                 {isEditMode && (
-                                    <button
-                                        onClick={() => handleDelete(item.id)}
-                                        className="ml-4 text-slate-400 hover:text-red-500 text-sm transition-colors hover:bg-red-50 p-2 rounded-lg"
-                                        title="Delete Item"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
+                                    <div className="flex gap-2 ml-4">
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                onClick={() => index > 0 && reorderProjectItems(currentProject.id, index, index - 1)}
+                                                disabled={index === 0}
+                                                className={`p-1 rounded bg-slate-100 border border-slate-200 hover:bg-white transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            >
+                                                <ArrowLeft size={16} className="rotate-90" />
+                                            </button>
+                                            <button
+                                                onClick={() => index < currentProject.items.length - 1 && reorderProjectItems(currentProject.id, index, index + 1)}
+                                                disabled={index === currentProject.items.length - 1}
+                                                className={`p-1 rounded bg-slate-100 border border-slate-200 hover:bg-white transition-colors ${index === currentProject.items.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            >
+                                                <ArrowLeft size={16} className="-rotate-90" />
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(item.id)}
+                                            className="text-slate-400 hover:text-red-500 text-sm transition-colors hover:bg-red-50 p-2 rounded-lg"
+                                            title="Delete Item"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
