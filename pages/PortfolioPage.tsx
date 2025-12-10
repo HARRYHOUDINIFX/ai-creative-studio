@@ -112,7 +112,7 @@ const PortfolioPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white p-6 md:p-12">
+        <div className="min-h-screen bg-white p-6 md:p-12 pb-32">
 
             {/* Nav Back */}
             <button
@@ -256,8 +256,8 @@ const PortfolioPage: React.FC = () => {
                                                                         highlightStyle: { ...item.highlightStyle, fontSize: size.value }
                                                                     })}
                                                                     className={`px-2 py-1 text-[10px] font-medium transition-colors ${(item.highlightStyle?.fontSize || 'text-sm') === size.value
-                                                                            ? 'bg-slate-900 text-white'
-                                                                            : 'hover:bg-slate-50 text-slate-600'
+                                                                        ? 'bg-slate-900 text-white'
+                                                                        : 'hover:bg-slate-50 text-slate-600'
                                                                         }`}
                                                                 >
                                                                     {size.label}
