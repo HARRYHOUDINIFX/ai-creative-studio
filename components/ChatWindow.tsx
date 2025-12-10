@@ -35,10 +35,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ onClose }) => {
     }, [messages]);
 
     // Prevent background scrolling when chat is open (Mobile UX)
+    // Prevent background scrolling when chat is open (Mobile UX)
     useEffect(() => {
         document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden'; // Lock html for mobile safari
         return () => {
             document.body.style.overflow = 'unset';
+            document.documentElement.style.overflow = 'unset';
         };
     }, []);
 

@@ -72,8 +72,33 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Use generic types to avoid heavy object duplication if possible, but structure requires object
-  const [elements, setElements] = useState<Record<string, ElementData>>({});
-  const [projects, setProjects] = useState<Project[]>([]);
+  // Use generic types to avoid heavy object duplication if possible, but structure requires object
+  const [elements, setElements] = useState<Record<string, ElementData>>(() => {
+    if (typeof window !== 'undefined' && !import.meta.env.DEV) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) { }
+    }
+    return {};
+  });
+
+  const [projects, setProjects] = useState<Project[]>(() => {
+    if (typeof window !== 'undefined' && !import.meta.env.DEV) {
+      try {
+        const saved = localStorage.getItem(PORTFOLIO_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Legacy migration logic inline
+          if (Array.isArray(parsed) && parsed.length > 0 && 'url' in parsed[0]) {
+            return [{ id: 'default', title: 'My Project', items: parsed }];
+          }
+          return parsed;
+        }
+      } catch (e) { }
+    }
+    return [];
+  });
 
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

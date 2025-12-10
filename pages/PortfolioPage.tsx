@@ -201,7 +201,8 @@ const PortfolioPage: React.FC = () => {
                                         src={item.url}
                                         controls
                                         playsInline
-                                        className="w-full h-auto max-h-[85vh] object-contain"
+                                        preload="auto"
+                                        className="w-full h-full object-cover"
                                         style={{ backgroundColor: '#000' }}
                                     />
                                 ) : (
