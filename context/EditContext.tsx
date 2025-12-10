@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface ElementData {
   content: string | number;
@@ -69,19 +70,32 @@ const PORTFOLIO_STORAGE_KEY = 'ai_studio_portfolio_data_v1';
 
 export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Use generic types to avoid heavy object duplication if possible, but structure requires object
   const [elements, setElements] = useState<Record<string, ElementData>>({});
   const [projects, setProjects] = useState<Project[]>([]);
+
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const saveTimerRef = useRef<number | null>(null);
+  // Debounce saving inputs to prevent excessive writes
+  // We track "version" or "timestamp" of last change to trigger save
+  const [lastChangeTime, setLastChangeTime] = useState(0);
+  const debouncedChangeTime = useDebounce(lastChangeTime, 2000); // Save after 2 seconds of inactivity
 
   // Global Undo/Redo Stacks
   const historyRef = useRef<{ elements: Record<string, ElementData>; projects: Project[] }[]>([]);
   const futureRef = useRef<{ elements: Record<string, ElementData>; projects: Project[] }[]>([]);
 
   const saveCheckpoint = useCallback(() => {
+    // Only save if different from last checkpoint
+    const last = historyRef.current[historyRef.current.length - 1];
+    if (last) {
+      // Simple check to avoid deep comparison every time, can be optimized further
+      // Here we just accept we might push duplicates if we don't deeply compare
+      // But for performance, we push.
+    }
     historyRef.current.push({
       elements: JSON.parse(JSON.stringify(elements)),
       projects: JSON.parse(JSON.stringify(projects))
@@ -104,7 +118,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const previous = historyRef.current.pop()!;
     setElements(previous.elements);
     setProjects(previous.projects);
-    setHasUnsavedChanges(true); // Undo is a change
+    setHasUnsavedChanges(true);
+    setLastChangeTime(Date.now());
   }, [elements, projects]);
 
   const handleGlobalRedo = useCallback(() => {
@@ -120,19 +135,17 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setElements(next.elements);
     setProjects(next.projects);
     setHasUnsavedChanges(true);
+    setLastChangeTime(Date.now());
   }, [elements, projects]);
 
   // Global Keydown Listener for Undo/Redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isEditMode) return;
-
-      // Ignore if user is typing in an input/textarea/contentEditable
       const target = e.target as HTMLElement;
       if (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         return;
       }
-
       if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         handleGlobalUndo();
@@ -142,19 +155,14 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
         handleGlobalRedo();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEditMode, handleGlobalUndo, handleGlobalRedo]);
 
 
   const loadFromFile = async () => {
-    // 1. Load Page Elements (Header, etc.)
-    // Priority: Static JSON (Build time) -> API (Blob/LocalFS) -> LocalStorage
     let elementsLoaded = false;
-
     try {
-      // Try loading from static file first
       const staticResponse = await fetch('/data/project-data.json?t=' + new Date().getTime());
       if (staticResponse.ok) {
         const data = await staticResponse.json();
@@ -163,11 +171,8 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
           elementsLoaded = true;
         }
       }
-    } catch (e) {
-      console.log('Static file load failed', e);
-    }
+    } catch (e) { console.log('Static file load failed'); }
 
-    // Fallback to API if static failed
     if (!elementsLoaded) {
       try {
         const response = await fetch('/api/load-data');
@@ -179,67 +184,43 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (e) {
-        console.log('Project file load failed', e);
+        // console.log('Project file load failed', e);
       }
     }
 
-    // Prod: Load from localStorage if all above failed
     if (!elementsLoaded && !import.meta.env.DEV) {
       try {
         const savedProject = localStorage.getItem(STORAGE_KEY);
-        if (savedProject) {
-          const parsed = JSON.parse(savedProject);
-          setElements(parsed);
-        }
+        if (savedProject) setElements(JSON.parse(savedProject));
       } catch (e) { }
     }
 
-    // 2. Load Portfolio Data (Projects)
-    // Priority: API (Blob/LocalFS) -> Static JSON (Build time) -> LocalStorage
+    // Load Projects
     try {
-      // Try loading from persistence layer first
       const apiResponse = await fetch('/api/load-portfolio');
       if (apiResponse.ok) {
         const data = await apiResponse.json();
-        // Check if data is valid array
         if (Array.isArray(data) && data.length > 0) {
-          // Success - load from persistence
           setProjects(data as Project[]);
           return;
         }
       }
-
-      // If API failed or returned empty/404, fallback to Static JSON
-      console.log('Persistence layer empty or failed, falling back to static data');
+      // Fallback
       const staticResponse = await fetch('/data/portfolio-data.json?t=' + new Date().getTime());
       if (staticResponse.ok) {
         const data = await staticResponse.json();
-
-        // Migration: Check if data is Array of Items (Legacy) or Array of Projects
         if (Array.isArray(data)) {
           if (data.length > 0 && 'url' in data[0]) {
-            // It's a list of items (Legacy)
-            const legacyProject: Project = {
-              id: 'default',
-              title: 'Untitled Project',
-              items: data as PortfolioItem[]
-            };
-            setProjects([legacyProject]);
+            setProjects([{ id: 'default', title: 'Untitled Project', items: data as PortfolioItem[] }]);
           } else {
-            // It's likely already Projects
             setProjects(data as Project[]);
           }
         }
-      } else {
-        throw new Error('No static file');
       }
     } catch (e) {
-      // Fallback to LocalStorage
-      console.warn('Fallback to LocalStorage');
       const savedPortfolio = localStorage.getItem(PORTFOLIO_STORAGE_KEY);
       if (savedPortfolio) {
         const parsed = JSON.parse(savedPortfolio);
-        // Handle migration for LS data too
         if (Array.isArray(parsed)) {
           if (parsed.length > 0 && 'url' in parsed[0]) {
             setProjects([{ id: 'default', title: 'My Project', items: parsed }]);
@@ -251,35 +232,28 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Save implementation
   const saveToFile = async (data: Record<string, ElementData>, projs: Project[]) => {
-    // 1. Try API endpoints (Dev: Middleware, Prod: Vercel Function)
     try {
-      await fetch('/api/save-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      if (import.meta.env.DEV) {
+        // Only use API saving in Dev mode usually, or if configured
+        await fetch('/api/save-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        await fetch('/api/save-portfolio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(projs)
+        });
+      }
 
-      // Save projects structure
-      await fetch('/api/save-portfolio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(projs)
-      });
-    } catch (e) {
-      console.error('API Save Failed', e);
-    }
-
-    // 2. Always save to LocalStorage
-    try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(projs));
       return true;
     } catch (e: any) {
-      console.error("LocalStorage Save Failed", e);
       if (e.name === 'QuotaExceededError' || e.code === 22) {
-        alert('저장 공간이 부족합니다! (브라우저 제한 초과)\n\n큰 이미지나 동영상을 삭제하고 다시 시도해주세요.');
+        alert('저장 공간이 부족합니다! 큰 이미지나 동영상을 삭제하고 다시 시도해주세요.');
       }
       return false;
     }
@@ -289,27 +263,32 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadFromFile().finally(() => setIsLoaded(true));
   }, []);
 
-  // Auto-save logic
+  // Debounced Auto-save
   useEffect(() => {
-    if (!isLoaded) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (!isLoaded || debouncedChangeTime === 0) return;
+    if (hasUnsavedChanges) {
+      saveToFile(elements, projects).then(() => {
+        // Optional logic after auto-save
+        // console.log('Auto-saved');
+      });
+    }
+  }, [debouncedChangeTime, isLoaded]); // Only runs when debounced value updates
 
-    saveTimerRef.current = window.setTimeout(async () => {
-      if (Object.keys(elements).length > 0 || projects.length > 0) {
-        await saveToFile(elements, projects);
-        setHasUnsavedChanges(false);
-      }
-    }, 1000);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [elements, projects, isLoaded]);
 
   const registerElement = useCallback((id: string, initialData: ElementData) => {
+    // If element exists, return it, else return initial
+    // Optimization: Don't update state here synchronously during render if not needed
     if (elements[id]) return elements[id];
     return initialData;
+    // Note: We don't automatically setElements here to avoid infinite loops during render.
+    // Elements should be registered via effects if they strictly need to be in state immediately.
   }, [elements]);
+
+  // Helper to trigger save
+  const markChanged = () => {
+    setHasUnsavedChanges(true);
+    setLastChangeTime(Date.now());
+  };
 
   const updateElement = useCallback((id: string, data: Partial<ElementData>) => {
     saveCheckpoint();
@@ -317,20 +296,19 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
       [id]: { ...prev[id], ...data }
     }));
-    setHasUnsavedChanges(true);
+    markChanged();
   }, []);
 
-  // Project Helper Functions
   const updateProjectItems = useCallback((projectId: string, items: PortfolioItem[]) => {
     saveCheckpoint();
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, items } : p));
-    setHasUnsavedChanges(true);
+    markChanged();
   }, []);
 
   const updateProject = useCallback((projectId: string, data: Partial<Project>) => {
     saveCheckpoint();
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...data } : p));
-    setHasUnsavedChanges(true);
+    markChanged();
   }, []);
 
   const createNewProject = useCallback((title: string) => {
@@ -341,33 +319,28 @@ export const EditProvider: React.FC<{ children: React.ReactNode }> = ({ children
       items: []
     };
     setProjects(prev => [...prev, newProject]);
-    setHasUnsavedChanges(true);
+    markChanged();
   }, []);
 
   const deleteProject = useCallback((id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     saveCheckpoint();
     setProjects(prev => prev.filter(p => p.id !== id));
-    setHasUnsavedChanges(true);
+    markChanged();
   }, []);
 
   const saveProject = useCallback(async () => {
-    try {
-      const success = await saveToFile(elements, projects);
-      setHasUnsavedChanges(false);
-      if (success) {
-        alert('저장이 완료되었습니다.');
-      }
-    } catch (e) {
-      alert('저장 중 오류가 발생했습니다.');
+    const success = await saveToFile(elements, projects);
+    setHasUnsavedChanges(false);
+    if (success && !hasUnsavedChanges) {
+      // Logic for manual save button feedback could go here
     }
-  }, [elements, projects]);
+  }, [elements, projects, hasUnsavedChanges]);
 
   const resetProject = useCallback(async () => {
-    if (window.confirm('모든 변경사항을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+    if (window.confirm('모든 변경사항을 초기화하시겠습니까?')) {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(PORTFOLIO_STORAGE_KEY);
-
       if (import.meta.env.DEV) {
         try {
           await fetch('/api/save-data', { method: 'POST', body: '{}' });
