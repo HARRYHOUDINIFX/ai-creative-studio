@@ -4,7 +4,7 @@ import Editable from './Editable';
 
 const InfoSection: React.FC = () => {
   return (
-    <footer className="bg-slate-900 text-slate-300 py-10 sm:py-20">
+    <footer className="bg-slate-900 text-slate-300 pt-10 pb-32 sm:pt-20 sm:pb-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 mb-16">
@@ -28,6 +28,27 @@ const InfoSection: React.FC = () => {
                 <Editable id="info-step3-desc" tagName="p" className="text-sm text-slate-400 mt-1" text="영업일 기준 3~5일 이내 1차 시안을 전달드립니다." />
               </li>
             </ul>
+
+
+            {/* Bank Info Moved Here */}
+            <div className="mt-12 pt-8 border-t border-slate-800">
+              <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-blue-400" />
+                <Editable id="info-bank-title" tagName="span" text="계좌 안내" />
+              </h4>
+              <div className="bg-slate-800/80 p-6 rounded-xl inline-block pr-12 ring-1 ring-white/5">
+                <div className="flex flex-col gap-1 text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-12">예금주</span>
+                    <Editable id="info-bank-owner" tagName="span" className="font-medium text-white" text="장순용" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 w-12">신한은행</span>
+                    <Editable id="info-bank-account" tagName="span" className="font-mono text-lg text-blue-200 font-bold tracking-wide" text="110-207-816249" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Policies */}
@@ -72,6 +93,10 @@ const InfoSection: React.FC = () => {
           </div>
         </div>
 
+
+
+
+
         {/* Removed border-t border-slate-800 to delete the line */}
         <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <Editable id="info-copyright" tagName="p" className="text-sm text-slate-500" text="© 2025 Visual Boost. All rights reserved." />
@@ -86,7 +111,7 @@ const InfoSection: React.FC = () => {
         </div>
 
       </div>
-    </footer>
+    </footer >
   );
 };
 
