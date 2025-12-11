@@ -1,8 +1,14 @@
 import React from 'react';
 import { Calculator, Clock, CreditCard, PenTool, RefreshCw, Copyright } from 'lucide-react';
 import Editable from './Editable';
+import PrivacyModal from './PrivacyModal';
+import TermsModal from './TermsModal';
+import { useState } from 'react';
 
 const InfoSection: React.FC = () => {
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+
   return (
     <footer className="bg-slate-900 text-slate-300 pt-10 pb-32 sm:pt-20 sm:pb-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -99,7 +105,22 @@ const InfoSection: React.FC = () => {
 
         {/* Removed border-t border-slate-800 to delete the line */}
         <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <Editable id="info-copyright" tagName="p" className="text-sm text-slate-500" text="© 2025 Visual Boost. All rights reserved." />
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <Editable id="info-copyright" tagName="p" className="text-sm text-slate-500" text="© 2025 Visual Boost. All rights reserved." />
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline"
+            >
+              개인정보처리방침
+            </button>
+            <span className="text-slate-700">|</span>
+            <button
+              onClick={() => setShowTerms(true)}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline"
+            >
+              이용약관
+            </button>
+          </div>
           <div className="flex gap-4">
             <span className="text-xs text-slate-600 border border-slate-700 px-2 py-1 rounded">
               <Editable id="info-badge-1" tagName="span" text="VAT 포함 가격" />
@@ -111,6 +132,10 @@ const InfoSection: React.FC = () => {
         </div>
 
       </div>
+
+
+      <PrivacyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
+      <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} />
     </footer >
   );
 };
