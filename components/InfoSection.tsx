@@ -99,6 +99,29 @@ const InfoSection: React.FC = () => {
           </div>
         </div>
 
+        {/* Business Info */}
+        <div className="mb-12 border-t border-slate-800 pt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <h5 className="text-white font-bold mb-4 text-sm">Business Info</h5>
+            <div className="space-y-1 text-xs text-slate-400">
+              <p>상호명 : 비주얼부스트 <span className="mx-2 text-slate-600">|</span> 대표자 : 장순용</p>
+              <p>사업자등록번호 : 503-49-27545</p>
+              <p>주소 : 인천광역시 서구 원당동 822-2</p>
+            </div>
+          </div>
+          <div>
+            <h5 className="text-white font-bold mb-4 text-sm">Customer Center</h5>
+            <div className="space-y-1 text-xs text-slate-400">
+              <p className="flex items-center gap-2">
+                <span className="font-bold text-white">010-8790-3910</span>
+                <span className="text-slate-600">/</span>
+                <span>skilling@naver.com</span>
+              </p>
+              <p>운영시간 : 평일 10:00 ~ 18:00 (주말/공휴일 휴무)</p>
+            </div>
+          </div>
+        </div>
+
 
 
 
